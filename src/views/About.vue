@@ -1,8 +1,9 @@
 
 <template>
   <div class="wrapper">
-    <div class="buttons">
-      <button v-for="(button, index) in buttons" :key="index" @click="addWidget(button)">{{button}}</button>
+    <div class="buttons">可添加元件：
+      <br>
+      <el-button v-for="button in buttons" :key="button" @click="addWidget(button)">{{button}}</el-button>
       <br>
       <el-button @click.native="save" type="primary">保存</el-button>
     </div>
@@ -15,22 +16,64 @@
         :type="widget.type"
         :is="widget.type"
         :id="widget.id"
+        :placeholder="widget.notes"
         :style="{
           position: 'absolute',
-          left: widget.left + 'px',
-          top: widget.top + 'px'
+          left: widget.left / sceneWidth * 100 + '%',
+          top: widget.top / sceneHeight * 100 + '%',
+          width: widget.width + '%',
+          height: widget.height + '%',
+          fontSize: widget.fontSize + 'px',
+          color: widget.fColor
         }"
         class="move"
-      >按钮</component>
+      >{{ widget.value }}</component>
       <!-- </div> -->
+    </div>
+    <div class="widget_props">选择元件的属性：
+      <div v-if="activeWidget.fColor" class="props">
+        <div class="block">
+          <span>横坐标：{{ activeWidget.left }}</span>
+          <el-slider :max="2000" v-model="activeWidget.left"></el-slider>
+        </div>
+        <div class="block">
+          <span>横坐标：{{ activeWidget.top }}</span>
+          <el-slider :max="2000" v-model="activeWidget.top"></el-slider>
+        </div>
+        <div class="block">
+          <span>元件宽度：{{ activeWidget.width }}</span>
+          <el-slider :max="100" v-model="activeWidget.width"></el-slider>
+        </div>
+        <div class="block">
+          <span>元件高度：{{ activeWidget.height }}</span>
+          <el-slider :max="100" v-model="activeWidget.height"></el-slider>
+        </div>
+        <div class="block">
+          <span>字体大小：{{ activeWidget.fontSize }}</span>
+          <el-slider :max="100" v-model="activeWidget.fontSize"></el-slider>
+        </div>
+        <div class="block">
+          <span>字体颜色：{{ activeWidget.fColor }}</span>
+          <input type="color" v-model="activeWidget.fColor">
+        </div>
+        <div class="block">
+          <span>标签名：</span>
+          <el-input v-model="activeWidget.value"/>
+        </div>
+        <div class="block">
+          <span>placeHolder：</span>
+          <el-input v-model="activeWidget.notes"/>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-const generate = require('nanoid/generate')
+const generate = require("nanoid/generate");
 import Button from "../components/button.vue";
 import Input from "../components/input.vue";
+import { move } from "../mixins/move.js";
 export default {
   name: "About",
   components: {
@@ -40,21 +83,12 @@ export default {
   data() {
     return {
       widgets: [],
-      drag: false,
-      buttons: ["按钮1", "按钮2", "按钮3"],
-      x: 0,
-      y: 0,
+      buttons: ["输入框", "按钮", "标签", "选择框"],
       template: "",
       type: "",
       currentTarget: "",
-      originX: 0, // 选中移动组件时组件的左偏移量
-      originY: 0, // 选中移动组件时组件的上偏移量
-      startX: 0, //  按下鼠标时的横坐标
-      startY: 0, // 按下鼠标时的纵坐标
-      widgetLeft: 0,
-      widgetLeft1: 0,
-      widgetTop: 0,
-      widgetTop2: 0
+      sceneWidth: 0,
+      sceneHeight: 0
     };
   },
   watch: {
@@ -69,53 +103,44 @@ export default {
     }
   },
   created() {
-    var data = localStorage.getItem('widgets');
-    if(data) {
+    var data = localStorage.getItem("widgets");
+    if (data) {
       this.$store.replaceState(JSON.parse(data));
       // console.log(this.$store.state)
     }
     this.widgets = this.$store.state.widgets;
-    // console.log(this.widgets);
-    // console.log(Array.isArray(JSON.parse(localStorage.getItem("widgets"))));
-    // this.widgets = JSON.parse(localStorage.getItem("widgets")).widgets;
   },
+  mixins: [move],
   computed: {
-    // widgets: {
-    //   get: function() {
-    //     return localStorage.getItem("widgets")
-    //       ? JSON.parse(localStorage.getItem("widgets"))
-    //       : this.$store.state.widgets;
-    //   },
-    //   set: function() {}
-    // }
+    activeWidget: {
+      get() {
+        if (this.$store.state.selectWidget) {
+          return this.$store.state.selectWidget;
+        } else {
+          return {};
+        }
+      },
+      set() {}
+    }
   },
   mounted() {
-    // document
-    //   .getElementById("viewport")
-    //   .addEventListener("mousedown", this.test, false);
+    this.sceneWidth = document.getElementById("viewport").offsetWidth;
+    this.sceneHeight = document.getElementById("viewport").offsetHeight;
     document
       .getElementById("viewport")
       .addEventListener("mousedown", this.selectWidget, false);
-    document.addEventListener("mouseup", this.mouseUp, false);
   },
   methods: {
     selectWidget(e) {
       var target = e.target;
-      this.$store.commit('selectWidget', { id: e.target.id })
+      this.$store.commit("selectWidget", { id: e.target.id });
       target = this.$store.state.selectWidget;
-      this.test();
+      if (target) {
+        this.initMovement(e);
+      }
     },
     save() {
-      this.$store.commit('save', this.$store.state)
-    },
-    test(e) {
-      e = e || window.event;
-      // console.log(e);
-      this.currentTarget = e;
-      let target = e.target.type;
-      if(target) {
-        this.initMove(this.currentTarget);
-      }
+      this.$store.commit("save", this.$store.state);
     },
     initMove(e) {
       var move = document.getElementById(e.target.id);
@@ -129,63 +154,88 @@ export default {
       this.onMove(e.target.id);
     },
     addWidget(buttonName) {
-      if (buttonName == "按钮1") {
+      if (buttonName == "按钮") {
         this.type = "el-button";
-        this.$store.commit("addWidget", { type: this.type, id: generate('1234567qwe', 10), left: this.widgetLeft, top: this.widgetTop});
-      } else if (buttonName == "按钮2") {
+        this.$store.commit("addWidget", {
+          type: this.type,
+          id: generate("1234567qwe", 10),
+          left: 0,
+          top: 0,
+          value: "按钮",
+          width: 10,
+          height: 10,
+          notes: "",
+          fontSize: 10,
+          fColor: "#000000"
+        });
+      } else if (buttonName == "输入框") {
         this.type = "el-input";
-        this.$store.commit("addWidget", { type: this.type, id: generate('1234567qwe', 10), left: this.widgetLeft1, top: this.widgetTop2});
+        this.$store.commit("addWidget", {
+          type: this.type,
+          id: generate("1234567qwe", 10),
+          left: 0,
+          top: 0,
+          value: "",
+          width: 10,
+          height: 10,
+          notes: "请输入密码",
+          fontSize: 10,
+          fColor: "#000000"
+        });
+      } else if (buttonName == "标签") {
+        this.type = "label";
+        this.$store.commit("addWidget", {
+          type: this.type,
+          id: generate("1234567qwe", 10),
+          left: 0,
+          top: 0,
+          value: "标签：",
+          width: 10,
+          height: 10,
+          notes: "",
+          fontSize: 10,
+          fColor: "#000000"
+        });
       }
-    },
-    onMove(targetId) {
-      var that = this;
-      var move = document.getElementById(targetId);
-      // console.log(move);
-      document.addEventListener(
-        "mousemove",
-        function(e) {
-          e.stopPropagation();
-          e.preventDefault();
-          if (that.drag) {
-            e = e || window.event;
-            var dx = e.pageX - that.startX;
-            var dy = e.pageY - that.startY;
-            var left = that.originX + dx;
-            var top = that.originY + dy;
-            that.widgetLeft = left;
-            that.widgetTop = top;
-            move.style.left = left < 0 ? 0 : left + "px";
-            move.style.top = top < 0 ? 0 : top + "px";
-          }
-        },
-        false
-      );
-    },
-    mouseUp(e) {
-      this.drag = false;
     }
   }
-}
+};
 </script>
 <style lang="scss" scoped>
 .wrapper {
   display: flex;
+  height: 100%;
 }
 .buttons {
+  text-align: left;
   flex: 1;
 }
 .viewport {
   position: relative;
-  flex: 5;
-  height: 500px;
+  overflow: hidden;
+  flex: 3;
+  height: 100%;
   border: 1px solid #ccc;
 }
-.viewport button {
-  position: absolute;
-  // width: 100px;
-  // height: 100px;
-  // background: tomato;
-  top: 0;
-  left: 0;
+.buttons button {
+  margin: 5px;
+}
+.widget_props {
+  box-sizing: border-box;
+  padding: 4px;
+  flex: 1;
+  text-align: left;
+  .props {
+    margin: 17px;
+    .block {
+      margin-top: 10px;
+      display: flex;
+      span,
+      .el-slider,
+      .el-input {
+        flex: 1;
+      }
+    }
+  }
 }
 </style>

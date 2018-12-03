@@ -1,5 +1,20 @@
+html,
+body {
+    height: 100%;
+}
+
+#app {
+    height: 100%;
+}
+
 .viewport input {
     position: absolute;
     left: 0;
     top: 0;
+    height: 100%;
+    color: inherit
+}
+
+.viewport .el-button+.el-button {
+    margin-left: 0;
 }
