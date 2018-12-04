@@ -3,9 +3,14 @@
   <div class="wrapper">
     <div class="buttons">可添加元件：
       <br>
-      <el-button v-for="button in buttons" :key="button" @click="addWidget(button)">{{button}}</el-button>
+      <a-button v-for="button in buttons" :key="button" @click="addWidget(button)">{{button}}</a-button>
       <br>
-      <el-button @click.native="save" type="primary">保存</el-button>
+      <a-button @click.native="save" type="primary">保存</a-button>
+      <a-button @click.native="deleteWidget" type="danger">删除</a-button>
+      <!-- <a-button type="primary">ant按钮</a-button>
+      <a-input placeholder="测试输入框"></a-input>
+      <a-textarea placeholder="测试文本域"></a-textarea>
+      <a-select></a-select>-->
     </div>
     <div id="viewport" class="viewport">
       <!-- <div id="move" @mousedown="move" @mousemove="onMove" @mouseup="mouseUp" class="move"></div> -->
@@ -13,10 +18,10 @@
       <component
         v-for="(widget, index) in widgets"
         :key="index"
-        :type="widget.type"
         :is="widget.type"
         :id="widget.id"
         :placeholder="widget.notes"
+        :defaultValue="widget.type == 'a-select' ? selectArray[0] : ''"
         :style="{
           position: 'absolute',
           left: widget.left / sceneWidth * 100 + '%',
@@ -26,8 +31,16 @@
           fontSize: widget.fontSize + 'px',
           color: widget.fColor
         }"
-        class="move"
-      >{{ widget.value }}</component>
+        @change="handleChange"
+      >
+        {{ widget.value }}
+        <a-select-option
+          v-if="widget.type == 'a-select'"
+          v-for="(item,index) in selectArray"
+          :key="index"
+          :value="item"
+        >{{item}}</a-select-option>
+      </component>
       <!-- </div> -->
     </div>
     <div class="widget_props">选择元件的属性：
@@ -88,7 +101,9 @@ export default {
       type: "",
       currentTarget: "",
       sceneWidth: 0,
-      sceneHeight: 0
+      sceneHeight: 0,
+      selectValue: "",
+      selectArray: ["选择一", "选择二", "选择三"]
     };
   },
   watch: {
@@ -131,6 +146,14 @@ export default {
       .addEventListener("mousedown", this.selectWidget, false);
   },
   methods: {
+    handleChange(value, options) {
+      if (options) {
+        this.selectValue = value;
+      }
+    },
+    deleteWidget() {
+      this.$store.commit("deleteWidget");
+    },
     selectWidget(e) {
       var target = e.target;
       this.$store.commit("selectWidget", { id: e.target.id });
@@ -155,7 +178,7 @@ export default {
     },
     addWidget(buttonName) {
       if (buttonName == "按钮") {
-        this.type = "el-button";
+        this.type = "a-button";
         this.$store.commit("addWidget", {
           type: this.type,
           id: generate("1234567qwe", 10),
@@ -169,7 +192,7 @@ export default {
           fColor: "#000000"
         });
       } else if (buttonName == "输入框") {
-        this.type = "el-input";
+        this.type = "a-input";
         this.$store.commit("addWidget", {
           type: this.type,
           id: generate("1234567qwe", 10),
@@ -190,6 +213,20 @@ export default {
           left: 0,
           top: 0,
           value: "标签：",
+          width: 10,
+          height: 10,
+          notes: "",
+          fontSize: 10,
+          fColor: "#000000"
+        });
+      } else if (buttonName == "选择框") {
+        this.type = "a-select";
+        this.$store.commit("addWidget", {
+          type: this.type,
+          id: generate("1234567qwe", 10),
+          left: 0,
+          top: 0,
+          value: "",
           width: 10,
           height: 10,
           notes: "",

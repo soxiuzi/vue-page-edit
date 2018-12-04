@@ -1,0 +1,17 @@
+.viewport .ant-select-selection--single {
+  height: 100%;
+}
+
+.viewport .ant-select {
+  padding: 5px
+}
+
+.viewport .ant-select-selection__rendered {
+  height: 100%;
+}
+
+.viewport .ant-select-selection-selected-value {
+  display: flex !important;
+  align-items: center;
+  height: 100%;
+}

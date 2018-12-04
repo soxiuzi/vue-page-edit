@@ -31,18 +31,19 @@ export default {
   },
   // 删除元件
   deleteWidget (state) {
-    console.log('删除组件')
+    let deleteTarget = state.selectWidget
+    let targetIndex = state.widgets.indexOf(deleteTarget)
+    state.widgets.splice(targetIndex, 1)
   },
   // 选中元件
   selectWidget (state, payload) {
     let widget = state.widgets.find(widget => widget.id === payload.id)
+    // console.log(widget)
     state.selectWidget = widget
+    // console.log(state.selectWidget)
   },
   // 保存元件
   save (state, payload) {
     localStorage.setItem('widgets', JSON.stringify(payload))
-  },
-  test () {
-    console.log('test')
   }
 }

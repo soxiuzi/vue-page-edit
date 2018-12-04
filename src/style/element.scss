@@ -15,6 +15,10 @@ body {
     color: inherit
 }
 
+.viewport .el-input {
+    height: 100%;
+}
+
 .viewport .el-button+.el-button {
     margin-left: 0;
 }
